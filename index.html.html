@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DP Calculation — Redpost</title>
+<style>
+:root{
+  --brand:#E21B23;--brand-dark:#B01419;
+  --ink:#1C1C1E;--ink2:#3C3C3E;--muted:#8A8A8E;
+  --pale:#F2F2F7;--border:#D1D1D6;
+  --sw:256px;--r:12px;
+  --sh:0 2px 20px rgba(0,0,0,.07);
+  --f:'Segoe UI',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f);background:#F5F5F7;color:var(--ink);min-height:100vh;display:flex}
+
+/* SIDEBAR */
+.sb{width:var(--sw);min-height:100vh;background:#fff;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:20;
+  box-shadow:2px 0 16px rgba(0,0,0,.06)}
+.sb-head{padding:20px 18px 16px;border-bottom:3px solid var(--brand);
+  display:flex;align-items:center;justify-content:center;min-height:80px}
+.sb-ph{display:flex;align-items:center;gap:7px;border:1.5px dashed var(--brand);
+  border-radius:7px;padding:8px 14px;color:var(--brand);font-size:11px;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.sb-ph:hover{background:#fde8e8}
+.sb-ph svg{width:16px;height:16px}
+#sb-logo{max-width:150px;max-height:46px;object-fit:contain;display:none;cursor:pointer}
+.sb-nav{padding:18px 12px;flex:1}
+.sb-sec{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);padding:0 8px;margin-bottom:6px;margin-top:14px}
+.sb-sec:first-child{margin-top:0}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;
+  font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;margin-bottom:1px;transition:all .15s}
+.sb-item:hover{background:var(--pale)}
+.sb-item.on{background:#fde8e8;color:var(--brand);font-weight:600}
+.sb-item svg{width:15px;height:15px;flex-shrink:0}
+.sb-foot{padding:14px 16px;border-top:1px solid var(--border);font-size:10.5px;
+  color:var(--muted);text-align:center;line-height:1.7}
+
+/* MAIN */
+.main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 32px;height:58px;
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:15}
+.tb-l{display:flex;align-items:center;gap:14px}
+.tb-title{font-size:16px;font-weight:700}
+.tb-title em{color:var(--brand);font-style:normal}
+.pill{background:#fde8e8;color:var(--brand);font-size:9.5px;font-weight:700;
+  padding:3px 10px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase}
+.tb-r{display:flex;align-items:center;gap:10px}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:12px;
+  font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:#fff;
+  color:var(--ink2);font-family:var(--f);transition:all .15s}
+.btn:hover{border-color:var(--brand);color:var(--brand);background:#fde8e8}
+.btn svg{width:14px;height:14px;flex-shrink:0}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand);
+  box-shadow:0 3px 12px rgba(226,27,35,.3)}
+.btn.primary:hover{background:var(--brand-dark);transform:translateY(-1px)}
+.btn:disabled{opacity:.6;cursor:not-allowed!important;transform:none!important;pointer-events:none}
+
+/* CONTENT */
+.content{padding:28px 32px;flex:1}
+.two-col{display:grid;grid-template-columns:1fr 380px;gap:22px;align-items:start}
+
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;box-shadow:var(--sh);margin-bottom:18px}
+.ch{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.ci{width:30px;height:30px;background:#fde8e8;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ci svg{width:14px;height:14px;color:var(--brand)}
+.ct{font-size:13.5px;font-weight:700}
+.cs{font-size:11px;color:var(--muted);margin-top:1px}
+.cb{padding:20px}
+
+/* FORM */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fp{display:flex;flex-direction:column;gap:5px}
+.fp label{font-size:10.5px;font-weight:700;color:var(--ink);letter-spacing:.06em;text-transform:uppercase}
+.iw{position:relative;display:flex;align-items:center}
+.ipx{position:absolute;left:11px;font-size:14px;font-weight:600;color:var(--muted);pointer-events:none}
+input[type=text],input[type=number]{width:100%;padding:10px 11px;border:1.5px solid var(--border);
+  border-radius:8px;font-family:var(--f);font-size:13.5px;color:var(--ink);background:#FAFAFA;
+  outline:none;transition:all .18s}
+.af{padding-left:27px!important;font-variant-numeric:tabular-nums}
+input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(226,27,35,.1);background:#fff}
+input::placeholder{color:#C0C0C5}
+
+/* AY TABS */
+.ay-row{display:flex;align-items:flex-end;gap:10px;margin-bottom:14px}
+.add-btn{display:flex;align-items:center;gap:6px;padding:0 18px;height:44px;border-radius:8px;
+  font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--brand);
+  background:var(--brand);color:#fff;font-family:var(--f);transition:all .15s;white-space:nowrap}
+.add-btn:hover{background:var(--brand-dark)}
+.add-btn svg{width:14px;height:14px}
+.tabs-wrap{padding:12px 20px;border-bottom:1px solid var(--border);background:#FAFAFA;
+  display:none;flex-wrap:wrap;gap:8px}
+.tab{display:flex;align-items:center;gap:5px;padding:5px 10px 5px 13px;border-radius:20px;
+  font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);
+  background:#fff;color:var(--ink2);transition:all .15s}
+.tab:hover{border-color:var(--brand);color:var(--brand)}
+.tab.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.tdel{width:16px;height:16px;border-radius:50%;display:inline-flex;align-items:center;
+  justify-content:center;font-size:9px;cursor:pointer;background:rgba(0,0,0,.1)}
+.tab.on .tdel{background:rgba(255,255,255,.25)}
+.banner{background:#fde8e8;border-radius:8px;padding:8px 13px;margin-bottom:14px;
+  font-size:12px;font-weight:600;color:var(--brand);display:none}
+
+/* RATE BOX */
+.rbox{background:var(--pale);border:1.5px solid var(--border);border-radius:9px;
+  padding:14px 16px;margin-top:4px}
+.rbox-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.rbox-l{display:flex;align-items:center;gap:8px}
+.rbadge{background:var(--brand);color:#fff;font-size:12px;font-weight:800;
+  padding:4px 12px;border-radius:20px;min-width:52px;text-align:center}
+.rlabel{font-size:13px;font-weight:600}
+.rsub{font-size:11px;color:var(--muted);margin-top:2px}
+.tog-wrap{display:flex;align-items:center;gap:7px;cursor:pointer}
+.tog-wrap span{font-size:11px;font-weight:600;color:var(--muted)}
+.tog{position:relative;width:36px;height:20px;background:var(--border);border-radius:10px;
+  cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--brand)}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.tog.on::after{transform:translateX(16px)}
+.crate-row{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);
+  display:none;align-items:center;gap:10px}
+.crate-row.show{display:flex}
+
+/* RESULTS GRID */
+.rg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px}
+.rc{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 15px}
+.rc.hl{background:var(--brand);border-color:var(--brand)}
+.rl{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.hl .rl{color:rgba(255,255,255,.7)}
+.rv{font-size:16px;font-weight:800;word-break:break-all}
+.hl .rv{color:#fff}
+.rss{font-size:9.5px;color:var(--muted);margin-top:2px}
+.hl .rss{color:rgba(255,255,255,.6)}
+
+/* SCREEN TABLE */
+.ptbl{width:100%;border-collapse:collapse;font-size:13px}
+.ptbl th{text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border)}
+.ptbl th:last-child{text-align:right}
+.ptbl td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.ptbl tr:last-child td{border-bottom:none}
+.am{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
+.ptbl .sr td{font-weight:700;background:#F7F7F5}
+.ptbl .sp td{height:3px;padding:0;background:#FAFAFA;border-bottom:2px solid var(--border)}
+.ptbl .tr td{font-weight:800;background:#fde8e8;color:var(--brand-dark)}
+
+/* PREVIEW PANEL */
+.psticky{position:sticky;top:76px}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ptitle{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pwrap{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:var(--sh)}
+.a4{width:100%;aspect-ratio:210/297;background:#fff;overflow:hidden}
+
+/* UPLOAD AREA */
+.uarea{border:2px dashed var(--border);border-radius:9px;padding:16px;text-align:center;
+  cursor:pointer;position:relative;background:#FAFAFA;transition:all .2s}
+.uarea:hover{border-color:var(--brand);background:#fdf5f5}
+.uarea input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* DRAWER */
+.doverlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40;
+  opacity:0;pointer-events:none;transition:opacity .3s}
+.doverlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;right:0;width:360px;height:100vh;background:#fff;z-index:50;
+  box-shadow:-8px 0 40px rgba(0,0,0,.15);transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.drawer.open{transform:translateX(0)}
+.dh{padding:18px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.dht{font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px}
+.dht svg{width:16px;height:16px;color:var(--brand)}
+.xbtn{width:30px;height:30px;border-radius:7px;border:none;background:var(--pale);
+  cursor:pointer;display:flex;align-items:center;justify-content:center}
+.xbtn svg{width:14px;height:14px}
+.db{padding:20px;overflow-y:auto;flex:1}
+.dsec{margin-bottom:22px}
+.dsect{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:14px}
+.df{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.df label{font-size:11px;font-weight:700;color:var(--ink2);letter-spacing:.04em;text-transform:uppercase}
+.df-foot{padding:16px 20px;border-top:1px solid var(--border)}
+.srow{display:flex;align-items:center;gap:10px}
+.sval{font-size:12px;font-weight:600;color:var(--brand);min-width:42px;text-align:right}
+input[type=range]{flex:1;height:4px;border-radius:2px;accent-color:var(--brand);
+  cursor:pointer;outline:none;border:none;padding:0}
+.crow{display:flex;align-items:center;gap:8px}
+input[type=color]{width:36px;height:30px;border:1.5px solid var(--border);border-radius:6px;
+  padding:2px;cursor:pointer;background:none;outline:none}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:#fff;
+  padding:12px 16px;border-radius:9px;font-size:12.5px;font-weight:500;
+  display:flex;align-items:center;gap:9px;box-shadow:0 8px 28px rgba(0,0,0,.22);
+  z-index:200;transform:translateY(70px);opacity:0;
+  transition:all .32s cubic-bezier(.34,1.56,.64,1);max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{background:#1a7a3a}
+.toast svg{width:14px;height:14px;flex-shrink:0}
+
+/* SPINNER */
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);
+  border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<input type="file" id="lfile" accept="image/*" style="display:none" onchange="doLogo(event)"/>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sb">
+  <div class="sb-head">
+    <img id="sb-logo" alt="" onclick="document.getElementById('lfile').click()"/>
+    <div class="sb-ph" id="sb-ph" onclick="document.getElementById('lfile').click()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      Upload Logo
+    </div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-sec">Tools</div>
+    <div class="sb-item on">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      DP Calculation
+    </div>
+    <div class="sb-sec">Settings</div>
+    <div class="sb-item" onclick="openDrawer()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      PDF Settings
+    </div>
+    <div class="sb-item" onclick="document.getElementById('lfile').click()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      Change Logo
+    </div>
+  </nav>
+  <div class="sb-foot">Powered by <strong style="color:var(--brand)">Redpost</strong><br/>Financial Tools Suite</div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+  <header class="topbar">
+    <div class="tb-l">
+      <div class="tb-title">Drawing Power <em>Calculator</em></div>
+      <span class="pill">Direct PDF Download</span>
+    </div>
+    <div class="tb-r">
+      <button class="btn" onclick="openDrawer()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        PDF Settings
+      </button>
+      <button class="btn primary" id="dl-btn" onclick="genPDF()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download PDF
+      </button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="two-col">
+      <!-- LEFT COLUMN -->
+      <div>
+
+        <!-- CLIENT INFO -->
+        <div class="card">
+          <div class="ch">
+            <div class="ci"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11"/></svg></div>
+            <div><div class="ct">Client Information</div><div class="cs">Company name shown on the document</div></div>
+          </div>
+          <div class="cb">
+            <div class="fp" style="margin-bottom:14px">
+              <label>Client / Company Name</label>
+              <input type="text" id="co" placeholder="e.g. Redpost Pvt. Ltd." oninput="calc()"/>
+            </div>
+            <div class="fp">
+              <label>Company Logo</label>
+              <div class="uarea" id="ua">
+                <input type="file" accept="image/*" onchange="doLogo(event)"/>
+                <div id="ud">
+                  <div style="width:32px;height:32px;margin:0 auto 6px;background:#fde8e8;border-radius:50%;display:flex;align-items:center;justify-content:center">
+                    <svg width="15" height="15" fill="none" stroke="#E21B23" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  </div>
+                  <div style="font-size:13px;font-weight:600">Upload company logo</div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:2px">PNG, JPG — embedded in PDF</div>
+                </div>
+                <div id="lpw" style="display:none;flex-direction:column;align-items:center;gap:4px">
+                  <img id="lp" alt="" style="max-width:150px;max-height:50px;object-fit:contain"/>
+                  <div style="font-size:10px;color:var(--muted)">Click to replace</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AY + FINANCIALS -->
+        <div class="card">
+          <div class="ch">
+            <div class="ci"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <div><div class="ct">Assessment Year &amp; Financials</div><div class="cs">Add each A.Y. — next year auto-fills</div></div>
+          </div>
+          <div class="tabs-wrap" id="year-tabs"></div>
+          <div class="cb">
+            <div class="ay-row">
+              <div class="fp" style="flex:1">
+                <label>Assessment Year</label>
+                <input type="text" id="ay-input" value="A.Y. 2025-26" placeholder="A.Y. 2025-26"/>
+              </div>
+              <button class="add-btn" onclick="addYear()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Year
+              </button>
+            </div>
+            <div class="banner" id="ay-banner">Editing: <span id="banner-ay"></span></div>
+            <div class="fg">
+              <div class="fp">
+                <label>Closing Stock</label>
+                <div class="iw"><span class="ipx">&#8377;</span><input type="text" id="st" class="af" placeholder="0" oninput="fmtAmt(this)" autocomplete="off"/></div>
+              </div>
+              <div class="fp">
+                <label>Sundry Debtors</label>
+                <div class="iw"><span class="ipx">&#8377;</span><input type="text" id="db" class="af" placeholder="0" oninput="fmtAmt(this)" autocomplete="off"/></div>
+              </div>
+              <div class="fp" style="grid-column:1/-1">
+                <label>Sundry Creditors</label>
+                <div class="iw"><span class="ipx">&#8377;</span><input type="text" id="cr" class="af" placeholder="0" oninput="fmtAmt(this)" autocomplete="off"/></div>
+              </div>
+            </div>
+            <div style="margin-top:14px">
+              <label style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;display:block">Eligible Loan Rate</label>
+              <div class="rbox">
+                <div class="rbox-row">
+                  <div class="rbox-l">
+                    <div class="rbadge" id="rate-badge">75%</div>
+                    <div>
+                      <div class="rlabel">Eligible Loan Amount</div>
+                      <div class="rsub" id="rate-sub">Default bank lending rate</div>
+                    </div>
+                  </div>
+                  <div class="tog-wrap" onclick="toggleRate()">
+                    <span>Custom</span>
+                    <div class="tog" id="rate-tog"></div>
+                  </div>
+                </div>
+                <div class="crate-row" id="crate-row">
+                  <label style="font-size:11.5px;font-weight:600;color:var(--ink2);white-space:nowrap">Custom Rate (%):</label>
+                  <input type="number" id="crate" value="75" min="1" max="100" step="0.1" style="width:90px;max-width:90px" oninput="calc()"/>
+                  <span style="font-size:12px;color:var(--muted)">of Adjusted Total</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESULT CARDS -->
+        <div class="rg">
+          <div class="rc"><div class="rl">Total Assets</div><div class="rv" id="r-ta">&#8377; 0.00</div><div class="rss">Stock + Debtors</div></div>
+          <div class="rc"><div class="rl">Adjusted Total</div><div class="rv" id="r-adj">&#8377; 0.00</div><div class="rss">Total &minus; Creditors</div></div>
+          <div class="rc hl"><div class="rl">Eligible Loan</div><div class="rv" id="r-dp">&#8377; 0.00</div><div class="rss"><span id="r-pct">75</span>% of Adjusted</div></div>
+        </div>
+
+        <!-- SCREEN TABLE -->
+        <div class="card">
+          <div class="ch">
+            <div class="ci"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+            <div><div class="ct">Preview — <span id="prev-ay" style="color:var(--brand)"></span></div><div class="cs">As it will appear in PDF</div></div>
+          </div>
+          <div class="cb" style="padding:0 0 1px">
+            <table class="ptbl">
+              <thead><tr><th>Description</th><th style="text-align:right">Amount (&#8377;)</th></tr></thead>
+              <tbody>
+                <tr><td>Closing Stock</td><td class="am" id="tst">&#8377; 0.00</td></tr>
+                <tr><td>Sundry Debtors</td><td class="am" id="tdb">&#8377; 0.00</td></tr>
+                <tr class="sr"><td><strong>Total Assets</strong></td><td class="am" id="tta"><strong>&#8377; 0.00</strong></td></tr>
+                <tr class="sp"><td colspan="2"></td></tr>
+                <tr><td>Less: Sundry Creditors</td><td class="am" id="tcr">&#8377; 0.00</td></tr>
+                <tr class="sr"><td><strong>Adjusted Total</strong></td><td class="am" id="tadj"><strong>&#8377; 0.00</strong></td></tr>
+                <tr class="sp"><td colspan="2"></td></tr>
+                <tr class="tr"><td><strong>Eligible Loan (<span id="t-pct">75</span>%)</strong></td><td class="am" id="tdp"><strong>&#8377; 0.00</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="btn" style="flex:1;justify-content:center;padding:12px" onclick="openDrawer()">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+            PDF Settings
+          </button>
+          <button class="btn primary dl-btn" style="flex:1;justify-content:center;padding:12px" onclick="genPDF()">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- RIGHT: LIVE PREVIEW -->
+      <div class="psticky">
+        <div class="ph">
+          <span class="ptitle">Live Preview</span>
+          <span style="font-size:11px;color:var(--muted)">A4 scaled</span>
+        </div>
+        <div class="pwrap"><div class="a4" id="mini"></div></div>
+        <div style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center">
+          &#128206; <strong>Download PDF</strong> — saves directly, no print dialog
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DRAWER ═══ -->
+<div class="doverlay" id="doverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="dh">
+    <div class="dht">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      PDF Settings
+    </div>
+    <button class="xbtn" onclick="closeDrawer()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="db">
+    <div class="dsec">
+      <div class="dsect">Logo Settings</div>
+      <div class="df">
+        <label>Logo Width (mm)</label>
+        <div class="srow">
+          <input type="range" id="logo-w" min="20" max="60" value="35" oninput="S.logoW=+this.value;document.getElementById('lw-v').textContent=this.value+'mm';renderMini()"/>
+          <span class="sval" id="lw-v">35mm</span>
+        </div>
+      </div>
+      <div class="df">
+        <label>Replace Logo</label>
+        <div class="uarea" style="padding:12px">
+          <input type="file" accept="image/*" onchange="doLogo(event)"/>
+          <div style="font-size:12px;color:var(--muted)">Click to upload new logo</div>
+        </div>
+      </div>
+    </div>
+    <div class="dsec">
+      <div class="dsect">Company Name in Header</div>
+      <div class="df">
+        <label>Show beside logo</label>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <div class="tog on" id="cname-tog" onclick="toggleCoName()"></div>
+          <span style="font-size:12px;color:var(--muted)" id="cname-lbl">Visible</span>
+        </div>
+      </div>
+    </div>
+    <div class="dsec">
+      <div class="dsect">Accent Color</div>
+      <div class="df">
+        <label>Header line, badge &amp; bar</label>
+        <div class="crow">
+          <input type="color" id="col-acc" value="#E21B23" oninput="S.colAccent=this.value;document.getElementById('col-v').textContent=this.value;renderMini()"/>
+          <span style="font-size:12px;color:var(--muted)" id="col-v">#E21B23</span>
+        </div>
+      </div>
+    </div>
+    <div class="dsec">
+      <div class="dsect">Document Title</div>
+      <div class="df">
+        <label>Title Text</label>
+        <input type="text" id="doc-title" value="DP CALCULATION" oninput="renderMini()"/>
+      </div>
+    </div>
+  </div>
+  <div class="df-foot">
+    <button class="btn primary dl-btn" style="width:100%;justify-content:center;padding:11px" onclick="genPDF();closeDrawer()">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download PDF Now
+    </button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="tmsg"></span>
+</div>
+
+<script>
+/* ═══════════════════════════════
+   STATE
+═══════════════════════════════ */
+var S = { logoUrl:null, logoW:35, showCoName:true, colAccent:'#E21B23', useCustomRate:false };
+var years = [], activeIdx = -1;
+
+/* ═══════════════════════════════
+   YEAR MANAGEMENT
+═══════════════════════════════ */
+function decAY(ay) {
+  var m = ay.match(/(\d{4})-(\d{2,4})/); if (!m) return '';
+  var y1 = parseInt(m[1]) - 1, s2 = m[2], y2;
+  if (s2.length === 2) { var n = parseInt(s2)-1; y2 = n<0?'99':(n<10?'0'+n:''+n); }
+  else y2 = String(parseInt(s2) - 1);
+  return 'A.Y. ' + y1 + '-' + y2;
+}
+
+function addYear() {
+  var ay = document.getElementById('ay-input').value.trim();
+  if (!ay) { toast('Please enter an Assessment Year.'); return; }
+  for (var i=0;i<years.length;i++) { if (years[i].ay===ay) { toast(ay+' already added.'); return; } }
+  
+  // FIX: Capture the current inputs before resetting or switching to a new tab
+  // If no years exist yet, save the current typed values as the first year's data
+  if (activeIdx < 0) {
+    years.push({ay: ay, st: rawV('st'), db: rawV('db'), cr: rawV('cr'), rate: getRate()});
+  } else {
+    // We're already on an active tab, save it, then add a fresh blank year
+    saveActive();
+    years.push({ay: ay, st: 0, db: 0, cr: 0, rate: 75});
+  }
+
+  activeIdx = years.length - 1;
+  document.getElementById('ay-input').value = decAY(ay);
+  renderTabs(); loadYear(activeIdx); toast(ay+' added!', true);
+}
+
+function saveActive() {
+  if (activeIdx < 0 || activeIdx >= years.length) return;
+  years[activeIdx].st = rawV('st'); years[activeIdx].db = rawV('db');
+  years[activeIdx].cr = rawV('cr'); years[activeIdx].rate = getRate();
+}
+
+function loadYear(idx) {
+  activeIdx = idx; var y = years[idx];
+  fillF('st',y.st); fillF('db',y.db); fillF('cr',y.cr);
+  
+  // FIX: Correctly restore the custom rate toggle configuration for this tab
+  S.useCustomRate = (y.rate !== 75);
+  document.getElementById('crate').value = y.rate;
+  document.getElementById('rate-tog').classList.toggle('on', S.useCustomRate);
+  document.getElementById('crate-row').classList.toggle('show', S.useCustomRate);
+
+  document.getElementById('banner-ay').textContent = y.ay;
+  document.getElementById('ay-banner').style.display = 'block';
+  document.getElementById('prev-ay').textContent = y.ay;
+  renderTabs(); calc();
+}
+
+function delYear(idx) {
+  years.splice(idx,1);
+  if (!years.length) {
+    activeIdx=-1;
+    document.getElementById('ay-banner').style.display='none';
+    document.getElementById('prev-ay').textContent='';
+    ['st','db','cr'].forEach(function(id){document.getElementById(id).value='';});
+    
+    // Reset rate configuration when entirely empty
+    S.useCustomRate = false;
+    document.getElementById('crate').value = '75';
+    document.getElementById('rate-tog').classList.remove('on');
+    document.getElementById('crate-row').classList.remove('show');
+  } else { activeIdx=Math.min(idx,years.length-1); loadYear(activeIdx); }
+  renderTabs(); calc();
+}
+
+function renderTabs() {
+  var w = document.getElementById('year-tabs');
+  if (!years.length) { w.style.display='none'; return; }
+  w.style.display = 'flex'; w.innerHTML = '';
+  years.forEach(function(y,i) {
+    var t = document.createElement('div');
+    t.className = 'tab' + (i===activeIdx?' on':'');
+    t.innerHTML = esc(y.ay) + '<span class="tdel">&#x2715;</span>';
+    (function(ii){
+      t.onclick = function(){ saveActive(); loadYear(ii); };
+      t.querySelector('.tdel').onclick = function(e){ e.stopPropagation(); delYear(ii); };
+    })(i);
+    w.appendChild(t);
+  });
+}
+function fillF(id, val) {
+  var el = document.getElementById(id), n = parseFloat(val);
+  el.value = (!n || n===0) ? '' : fmtNum(n);
+}
+
+/* ═══════════════════════════════
+   LOGO
+═══════════════════════════════ */
+function doLogo(e) {
+  var f = e.target.files && e.target.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(ev) {
+    S.logoUrl = ev.target.result;
+    document.getElementById('sb-logo').src = S.logoUrl;
+    document.getElementById('sb-logo').style.display = 'block';
+    document.getElementById('sb-ph').style.display = 'none';
+    document.getElementById('lp').src = S.logoUrl;
+    document.getElementById('lpw').style.display = 'flex';
+    document.getElementById('ud').style.display = 'none';
+    renderMini();
+  };
+  r.readAsDataURL(f);
+}
+
+/* ═══════════════════════════════
+   TOGGLES
+═══════════════════════════════ */
+function toggleRate() {
+  S.useCustomRate = !S.useCustomRate;
+  document.getElementById('rate-tog').classList.toggle('on', S.useCustomRate);
+  document.getElementById('crate-row').classList.toggle('show', S.useCustomRate);
+  calc();
+}
+function getRate() {
+  if (S.useCustomRate) { var v=parseFloat(document.getElementById('crate').value); return isNaN(v)?75:Math.min(100,Math.max(1,v)); }
+  return 75;
+}
+function toggleCoName() {
+  S.showCoName = !S.showCoName;
+  document.getElementById('cname-tog').classList.toggle('on', S.showCoName);
+  document.getElementById('cname-lbl').textContent = S.showCoName ? 'Visible' : 'Hidden';
+  renderMini();
+}
+
+/* ═══════════════════════════════
+   FORMATTING
+═══════════════════════════════ */
+function fmtNum(n) { return Number(Math.abs(n)).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function inr(n)    { return '\u20b9 ' + fmtNum(n); }
+function rawV(id)  { var v=parseFloat(String(document.getElementById(id).value).replace(/,/g,'')); return isNaN(v)?0:v; }
+function esc(s)    { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtAmt(el) {
+  var raw = el.value.replace(/[^0-9.]/g,'');
+  var di = raw.indexOf('.');
+  if (di !== -1) raw = raw.slice(0,di+1) + raw.slice(di+1).replace(/\./g,'').slice(0,2);
+  var parts = raw.split('.'), ip = parts[0]||'', dp2 = parts.length>1?'.'+parts[1]:'';
+  if (ip.length>3) { var l3=ip.slice(-3),rst=ip.slice(0,-3).replace(/\B(?=(\d{2})+(?!\d))/g,','); ip=rst+','+l3; }
+  var pos=el.selectionStart, ol=el.value.length;
+  el.value = ip + dp2;
+  try { el.setSelectionRange(pos+el.value.length-ol, pos+el.value.length-ol); } catch(e){}
+  if (activeIdx >= 0) saveActive();
+  calc();
+}
+
+/* ═══════════════════════════════
+   CALCULATE
+═══════════════════════════════ */
+function calc() {
+  var s=rawV('st'), d=rawV('db'), c=rawV('cr'), rate=getRate();
+  var ta=s+d, adj=Math.max(0,ta-c), dp=adj*(rate/100);
+  var pct = (rate%1===0) ? String(Math.round(rate)) : rate.toFixed(1);
+  setT('r-ta',inr(ta)); setT('r-adj',inr(adj)); setT('r-dp',inr(dp));
+  setT('r-pct',pct); setT('rate-badge',pct+'%');
+  setT('rate-sub', S.useCustomRate ? 'Custom rate: '+pct+'% applied' : 'Default bank lending rate');
+  setT('tst',inr(s)); setT('tdb',inr(d));
+  document.getElementById('tta').innerHTML = '<strong>'+inr(ta)+'</strong>';
+  setT('tcr',inr(c));
+  document.getElementById('tadj').innerHTML = '<strong>'+inr(adj)+'</strong>';
+  document.getElementById('tdp').innerHTML  = '<strong>'+inr(dp)+'</strong>';
+  setT('t-pct',pct);
+  renderMini();
+}
+function setT(id,v) { var el=document.getElementById(id); if(el) el.textContent=v; }
+
+/* ═══════════════════════════════
+   MINI PREVIEW
+═══════════════════════════════ */
+function renderMini() {
+  var s=rawV('st'),d=rawV('db'),c=rawV('cr'),rate=getRate();
+  var ta=s+d, adj=Math.max(0,ta-c), dp=adj*(rate/100);
+  var pct=(rate%1===0)?String(Math.round(rate)):rate.toFixed(1);
+  var co=document.getElementById('co').value||'';
+  var docT=document.getElementById('doc-title').value||'DP CALCULATION';
+  var ay=activeIdx>=0&&years[activeIdx]?years[activeIdx].ay:(document.getElementById('ay-input').value||'');
+  var col=S.colAccent, ds=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  function mr(n){return 'Rs.'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function row(lb,vl,opts){
+    opts=opts||{}; var bg=opts.r?col:(opts.s?'#F5F5F5':'transparent'); var fc=opts.r?'#fff':'#1C1C1E'; var fw=opts.s||opts.r?'font-weight:700;':'';
+    return '<tr style="background:'+bg+'"><td style="padding:1.5px 2.5px;font-size:5px;border-bottom:.3px solid #eee;'+fw+'color:'+fc+'">'+lb+'</td><td style="padding:1.5px 2.5px;font-size:5px;border-bottom:.3px solid #eee;text-align:right;'+fw+'color:'+fc+'">'+vl+'</td></tr>';
+  }
+  var logH=S.logoUrl?'<img src="'+S.logoUrl+'" style="height:18px;max-width:55px;object-fit:contain;vertical-align:middle"/>'
+    :'<div style="width:44px;height:12px;background:#eee;border-radius:2px;border:1px dashed #ccc;display:inline-flex;align-items:center;justify-content:center;font-size:4px;color:#bbb">LOGO</div>';
+  var coH=(S.showCoName&&co)?'<span style="font-size:6px;font-weight:700;color:#1C1C1E;margin-left:4px;vertical-align:middle">'+esc(co)+'</span>':'';
+  var ayB=ay?'<div style="display:inline-block;background:'+col+';color:#fff;font-size:3.8px;font-weight:700;padding:1px 4px;border-radius:2px;margin-bottom:3px">'+esc(ay)+'</div><br>':'';
+  var extra=years.length>1?'<div style="text-align:center;font-size:4px;color:#8A8A8E;margin-top:3px">+ '+(years.length-1)+' more A.Y. page'+(years.length>2?'s':'')+'</div>':'';
+  document.getElementById('mini').innerHTML=
+    '<div style="width:100%;height:100%;background:#fff;padding:7% 6% 13%;position:relative;display:flex;flex-direction:column;font-family:sans-serif;overflow:hidden">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:2px;border-bottom:1.5px solid '+col+'"><div>'+logH+coH+'</div><div style="font-size:4px;color:#8A8A8E">'+esc(ds)+'</div></div>'
+    +'<div style="height:.4px;background:#BFBFBF;margin-bottom:4px"></div>'
+    +'<div>'+ayB+'</div>'
+    +'<div style="text-align:center;font-size:8px;font-weight:900;color:#1C1C1E;margin-bottom:3px">'+esc(docT)+'</div>'
+    +'<div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:5px;font-weight:700">'+esc(co||'—')+'</span><span style="font-size:4px;color:#8A8A8E">'+esc(ds)+'</span></div>'
+    +'<table style="width:100%;border-collapse:collapse">'
+    +'<tr style="background:#1C1C1E"><td style="padding:1.5px 2.5px;font-size:4px;color:#fff;font-weight:700;text-transform:uppercase">Particulars</td><td style="padding:1.5px 2.5px;font-size:4px;color:#fff;text-align:right;font-weight:700">Amount</td></tr>'
+    +row('Closing Stock',mr(s))+row('Sundry Debtors',mr(d))+row('Total Assets',mr(ta),{s:1})
+    +'<tr><td colspan="2" style="height:1.5px;border-bottom:.5px solid '+col+'"></td></tr>'
+    +row('Less: Creditors',mr(c))+row('Adjusted Total',mr(adj),{s:1})
+    +'<tr><td colspan="2" style="height:1.5px;border-bottom:.5px solid '+col+'"></td></tr>'
+    +row('Eligible Loan ('+pct+'%)',mr(dp),{r:1})
+    +'</table><div style="flex:1"></div>'+extra
+    +'<div style="position:absolute;bottom:0;left:0;right:0;height:5%;background:'+col+';display:flex;align-items:center;justify-content:center"><span style="font-size:3.5px;color:#fff;font-weight:600">'+esc(co)+'</span></div></div>';
+}
+
+/* ═══════════════════════════════
+   DRAWER
+═══════════════════════════════ */
+function openDrawer()  { document.getElementById('drawer').classList.add('open');   document.getElementById('doverlay').classList.add('open'); }
+function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('doverlay').classList.remove('open'); }
+
+/* ═══════════════════════════════
+   PURE JS PDF GENERATOR
+   No CDN. No libraries. Works offline.
+   Produces valid PDF 1.4 binary.
+═══════════════════════════════ */
+function buildPDF(pages, settings, onDone) {
+  var W=595.28, H=841.89, ML=51, MR=51, CW=W-ML-MR;
+
+  /* helpers */
+  function n(v) { return Math.round(parseFloat(v)*1000)/1000; }
+  function hexRGB(h) {
+    h=h.replace('#',''); if(h.length===3) h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    return [parseInt(h.slice(0,2),16)/255, parseInt(h.slice(2,4),16)/255, parseInt(h.slice(4,6),16)/255];
+  }
+  function fmtINR(v) {
+    v=Math.abs(parseFloat(v)||0); var s=v.toFixed(2), parts=s.split('.'), ip=parts[0], dec=parts[1];
+    if(ip.length>3){var l3=ip.slice(-3),rest=ip.slice(0,-3),g=[];while(rest.length>2){g.unshift(rest.slice(-2));rest=rest.slice(0,-2);}if(rest)g.unshift(rest);ip=g.join(',')+','+l3;}
+    return 'Rs. '+ip+'.'+dec;
+  }
+  function pstr(s) { /* safe PDF string, ASCII only */
+    var o='';
+    for(var i=0;i<s.length;i++){
+      var c=s.charCodeAt(i);
+      if(s[i]==='\\')o+='\\\\';
+      else if(s[i]==='(')o+='\\(';
+      else if(s[i]===')')o+='\\)';
+      else if(c>=32&&c<=126) o+=s[i];
+      else if(c<=255) o+='\\'+c.toString(8).padStart(3,'0');
+    }
+    return '('+o+')';
+  }
+
+  /* object store */
+  var objs={}, nid=1;
+  function alloc(){ return nid++; }
+  function set(id,v){ objs[id]=v; }
+
+  var fid=alloc();  set(fid, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');
+  var fbid=alloc(); set(fbid,'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+
+  var pageIds=[];
+  var col=hexRGB(settings.colAccent);
+  var R=n(col[0]),G=n(col[1]),B=n(col[2]);
+  var co=settings.company||'';
+  var docTitle=settings.docTitle||'DP CALCULATION';
+  var now=new Date();
+  var ds=now.toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+
+  function buildOnePage(pd, pi) {
+    var st=parseFloat(pd.st)||0, db=parseFloat(pd.db)||0, cr=parseFloat(pd.cr)||0, rate=parseFloat(pd.rate)||75;
+    var ta=st+db, adj=Math.max(0,ta-cr), dp=adj*(rate/100);
+    var pct=(rate%1===0)?String(Math.round(rate)):rate.toFixed(1);
+    var ay=pd.ay||'';
+    var ref='Ref: DP/'+now.getFullYear()+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+String(pi+1).padStart(2,'0');
+
+    var ops=[], cy=H-40;
+
+    function clr(r,g,b,stroke){ ops.push(n(r)+' '+n(g)+' '+n(b)+' '+(stroke?'RG':'rg')); }
+    function lw(w){ ops.push(n(w)+' w'); }
+    function rect(x,y,w,h,fill){ ops.push(n(x)+' '+n(y)+' '+n(w)+' '+n(h)+' re '+(fill?'f':'S')); }
+    function ln(x1,y1,x2,y2){ ops.push(n(x1)+' '+n(y1)+' m '+n(x2)+' '+n(y2)+' l S'); }
+    function txt(s,x,y,sz,bold){
+      ops.push('BT /'+(bold?'F2':'F1')+' '+sz+' Tf '+n(x)+' '+n(y)+' Td '+pstr(s)+' Tj ET');
+    }
+    function txtR(s,x,y,sz,bold){ txt(s, x - s.length*sz*0.52, y, sz, bold); }
+    function txtC(s,y,sz,bold)  { txt(s, (W - s.length*sz*0.52)/2, y, sz, bold); }
+
+    /* logo */
+    if(settings._imgName && settings._imgObjId) {
+      var lw2=settings.logoW*2.835, lh2=12*2.835;
+      ops.push('q '+n(lw2)+' 0 0 '+n(lh2)+' '+n(ML)+' '+n(cy-lh2)+' cm /'+settings._imgName+' Do Q');
+    }
+
+    /* company name */
+    if(settings.showCoName && co){ clr(0.11,0.11,0.12); txt(co, ML+(settings._imgName?settings.logoW*2.835+8:0), cy-22, 13, true); }
+
+    /* date / ref */
+    clr(0.54,0.54,0.56);
+    txtR(ds, W-MR, cy-12, 8, false);
+    txtR(ref, W-MR, cy-22, 8, false);
+    cy -= 34;
+
+    /* accent line */
+    clr(R,G,B,true); lw(1.5); ln(ML,cy,W-MR,cy); cy -= 4;
+    /* grey line */
+    clr(0.75,0.75,0.75,true); lw(0.5); ln(ML,cy,W-MR,cy); cy -= 18;
+
+    /* ay badge */
+    if(ay){ var bh=16, bw=ay.length*7+14; clr(R,G,B); rect(ML,cy-bh+2,bw,bh,true); clr(1,1,1); txt(ay,ML+7,cy-10,9,true); cy-=bh+10; }
+
+    /* title */
+    clr(0.11,0.11,0.12); txtC(docTitle, cy, 17, true); cy -= 26;
+
+    /* client info */
+    clr(0.54,0.54,0.56); txt('Client / Company',ML,cy,8.5,false); txtR('Date',W-MR,cy,8.5,false); cy -= 14;
+    clr(0.11,0.11,0.12); txt(co||'-',ML,cy,11,true); txtR(ds,W-MR,cy,10,false); cy -= 24;
+
+    /* table */
+    var ROW=25;
+    function hdr(){ clr(0.11,0.11,0.12); rect(ML,cy-ROW,CW,ROW,true); clr(1,1,1); txt('PARTICULARS',ML+8,cy-ROW+8,8.5,true); txtR('AMOUNT (Rs.)',W-MR-8,cy-ROW+8,8.5,true); cy-=ROW; }
+    function row2(label,val,style){
+      var h=style==='hl'?ROW+4:ROW;
+      if(style==='sub'){ clr(0.96,0.96,0.96); rect(ML,cy-h,CW,h,true); }
+      else if(style==='hl'){ clr(R,G,B); rect(ML,cy-h,CW,h,true); }
+      var fc=style==='hl'?[1,1,1]:[0.11,0.11,0.12];
+      clr(fc[0],fc[1],fc[2]);
+      var bold=style==='sub'||style==='hl', fsz=style==='hl'?11:10.5;
+      txt(label,ML+8,cy-h+8,fsz,bold); txtR(val,W-MR-8,cy-h+8,fsz,bold);
+      if(style!=='hl'){ clr(0.82,0.82,0.84,true); lw(0.3); ln(ML,cy-h,W-MR,cy-h); }
+      cy-=h;
+    }
+    function spacer(){ clr(1,1,1); rect(ML,cy-10,CW,10,true); clr(R,G,B,true); lw(0.5); ln(ML,cy-10,W-MR,cy-10); cy-=10; }
+
+    hdr();
+    row2('Closing Stock',        fmtINR(st),  'normal');
+    row2('Sundry Debtors',       fmtINR(db),  'normal');
+    row2('Total Assets',         fmtINR(ta),  'sub');
+    spacer();
+    row2('Less: Sundry Creditors',fmtINR(cr), 'normal');
+    row2('Adjusted Total',       fmtINR(adj), 'sub');
+    spacer();
+    row2('Eligible Loan Amount ('+pct+'%)', fmtINR(dp), 'hl');
+
+    /* bottom bar */
+    clr(R,G,B); rect(0,0,W,28,true); clr(1,1,1); txtC(co,10,9,true);
+
+    var stream=ops.join('\n');
+    var cid=alloc(); set(cid,'<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream');
+    var resDict='/Font << /F1 '+fid+' 0 R /F2 '+fbid+' 0 R >>';
+    if(settings._imgName&&settings._imgObjId) resDict+=' /XObject << /'+settings._imgName+' '+settings._imgObjId+' 0 R >>';
+    var pid=alloc(); set(pid,'<< /Type /Page /Parent __PAGES__ /MediaBox [0 0 595.28 841.89] /Contents '+cid+' 0 R /Resources << '+resDict+' >> >>');
+    pageIds.push(pid);
+  }
+
+  function finish() {
+    pages.forEach(function(pd,pi){ buildOnePage(pd,pi); });
+    var pgId=alloc(), catId=alloc();
+    set(pgId,'<< /Type /Pages /Kids ['+pageIds.map(function(p){return p+' 0 R';}).join(' ')+'] /Count '+pageIds.length+' >>');
+    set(catId,'<< /Type /Catalog /Pages '+pgId+' 0 R >>');
+    Object.keys(objs).forEach(function(k){ objs[k]=objs[k].replace(/__PAGES__/g,pgId+' 0 R'); });
+
+    var out='%PDF-1.4\n%\xFF\xFF\xFF\xFF\n', offsets={};
+    var ids=Object.keys(objs).map(Number).sort(function(a,b){return a-b;});
+    ids.forEach(function(id){ offsets[id]=out.length; out+=id+' 0 obj\n'+objs[id]+'\nendobj\n'; });
+
+    var xpos=out.length, maxId=Math.max.apply(null,ids);
+    out+='xref\n0 '+(maxId+1)+'\n0000000000 65535 f \n';
+    for(var i=1;i<=maxId;i++){
+      out+=(offsets[i]!==undefined?String(offsets[i]).padStart(10,'0'):'0000000000')+' 00000 '+(offsets[i]!==undefined?'n':'f')+' \n';
+    }
+    out+='trailer\n<< /Size '+(maxId+1)+' /Root '+catId+' 0 R >>\nstartxref\n'+xpos+'\n%%EOF';
+    onDone(out);
+  }
+
+  /* embed logo if present */
+  if(settings.logoUrl) {
+    var img=new Image();
+    img.onload=function(){
+      try{
+        var canvas=document.createElement('canvas');
+        var sc=Math.min(200/img.width, 80/img.height, 1);
+        canvas.width=Math.round(img.width*sc); canvas.height=Math.round(img.height*sc);
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        var jpegB64=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+        var bin=atob(jpegB64), bytes=new Uint8Array(bin.length);
+        for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+        /* encode image as hex stream for clean text embedding */
+        var hex=''; for(var i=0;i<bytes.length;i++) hex+=bytes[i].toString(16).padStart(2,'0');
+        var imgId=alloc();
+        set(imgId,'<< /Type /XObject /Subtype /Image /Width '+canvas.width+' /Height '+canvas.height+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/ASCIIHexDecode /DCTDecode] /Length '+hex.length+' >>\nstream\n'+hex+'\nendstream');
+        settings._imgName='Img1'; settings._imgObjId=imgId;
+      }catch(e){settings.logoUrl=null;}
+      finish();
+    };
+    img.onerror=function(){ settings.logoUrl=null; finish(); };
+    img.src=settings.logoUrl;
+  } else {
+    finish();
+  }
+}
+
+/* ═══════════════════════════════
+   DOWNLOAD TRIGGER
+═══════════════════════════════ */
+function genPDF() {
+  var co=document.getElementById('co').value.trim();
+  if(!co){ toast('Please enter a company name first.'); document.getElementById('co').focus(); return; }
+  saveActive();
+  
+  var data = years.length>0 ? years : [{ay:document.getElementById('ay-input').value.trim(),st:rawV('st'),db:rawV('db'),cr:rawV('cr'),rate:getRate()}];
+  var settings = {
+    company: co,
+    docTitle: document.getElementById('doc-title').value || 'DP CALCULATION',
+    colAccent: S.colAccent,
+    showCoName: S.showCoName,
+    logoUrl: S.logoUrl,
+    logoW: S.logoW
+  };
+
+  // Visually disable all download buttons
+  var btns=document.querySelectorAll('.dl-btn');
+  btns.forEach(function(b) {
+    b.disabled=true;
+    b.innerHTML='<span class="spin"></span> Generating…';
+  });
+
+  buildPDF(data, settings, function(pdfText) {
+    try {
+      var blob=new Blob([pdfText],{type:'application/pdf'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url;
+      a.download=co.replace(/[^a-zA-Z0-9]/g,'_')+'_DP_Calculation.pdf';
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },1000);
+      toast('PDF downloaded successfully!', true);
+    } catch(e) { toast('Error: '+e.message); }
+    
+    // Re-enable download buttons
+    btns.forEach(function(b) {
+      b.disabled=false;
+      b.innerHTML='<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF';
+    });
+  });
+}
+
+/* ═══════════════════════════════
+   TOAST
+═══════════════════════════════ */
+function toast(msg, ok) {
+  var el=document.getElementById('toast');
+  document.getElementById('tmsg').textContent=msg;
+  el.className='toast'+(ok?' ok':'')+' show';
+  clearTimeout(el._t); el._t=setTimeout(function(){ el.classList.remove('show'); },4500);
+}
+
+/* INIT */
+calc();
+</script>
+</body>
+</html>
